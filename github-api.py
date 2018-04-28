@@ -8,15 +8,6 @@
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA.
-#
 # Authors:
 #     Miguel Angel Fernandez Sanchez <ma.fernandezsa@alumnos.urjc.es>
 #     Gregorio Robles Martinez <grex@gsyc.urjc.es>
@@ -40,16 +31,14 @@ def main(args):
 
     logger.info('GitHub-API starts...')
     github_key = args.github_token
-    ProjectRecord = namedtuple('ProjectRecord', 'id, url, owner_id, name, descriptor, language, created_at, forked_from, deleted, updated_at')
+    ProjectRecord = namedtuple('ProjectRecord', 'id, url, owner_id, name, descriptor, \
+                               language, created_at, forked_from, deleted, updated_at')
 
-    if not os.path.exists("master"):
-        os.mkdir("master")
-    if not os.path.exists("default"):
-        os.mkdir("default")
-    if not os.path.exists("trees"):
-        os.mkdir("trees")
+    initialize_dir("master")
+    initialize_dir("default")
+    initialize_dir("trees")
 
-    alreadyList = os.listdir("master")
+    alreadyList = os.listdir("master")  # Empty if there are no previous downloads
 
     with open(args.projects_file, "r") as csvfile:
         for contents in csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL):
@@ -58,24 +47,26 @@ def main(args):
             contents[2] = str(int(contents[2]))
             repo = ProjectRecord(*contents)
 
-            if repo.owner_id + ":" + repo.id + ".json" in alreadyList:
+            filename = "%s:%s.json" % (repo.owner_id, repo.id)
+            if filename in alreadyList:
                 continue  # Break loop, if json is already downloaded
+
             if not get_json(repo, github_key, "master", "/branches/master"):
-                continue  # Break loop, ¿?
+                logger.debug("Master branch not found")
             sha_hash = read_json(repo, "master", ["commit", "commit", "tree", "sha"])
 
             if not sha_hash:
-                logger.debug("Master branch not found: %s", repo.url)
+                logger.debug("Master branch, sha_hash not found: " + repo.url)
                 if not get_json(repo, github_key, "default"):
-                    continue
+                    logger.debug("Default branch not found")
                 default = read_json(repo, "default", ["default_branch"])
 
                 if not default:
-                    logger.debug("No default branch found: %s", repo.url)
+                    logger.debug("Default branch read_json failed: " + repo.url)
                     time.sleep(1.40)
-                    continue
+
                 if not get_json(repo, github_key, "master", "/branches/" + default):
-                    continue
+                    logger.debug("master/branches not found")
                 sha_hash = read_json(repo, "master", ["commit", "commit", "tree", "sha"])
 
                 if not sha_hash:
@@ -83,10 +74,17 @@ def main(args):
                     time.sleep(2.10)
                     continue
             if not get_json(repo, github_key, "trees", "/git/trees/" + sha_hash + "?recursive=1"):
-                continue
+                logger.error("File list was not obtained")
             time.sleep(1.40)
 
-    logger.info("End of program")
+
+def initialize_dir(directory):
+    """ Creates a directory with a given name if it doesn't exist.
+
+    :param directory: Name for the directoryto be created
+    """
+    if not os.path.exists(directory):
+        os.mkdir(directory)
 
 
 def lookup(dic, key, *keys):
@@ -95,8 +93,12 @@ def lookup(dic, key, *keys):
     From StackOverflow: http://stackoverflow.com/a/11701539
 
     For instance, to obtain data["commit"]["commit"]["tree"]["sha"]
-    you should call:
-    lookup(data, ["commit", "commit", "tree", "sha"])
+    you should call: lookup(data, ["commit", "commit", "tree", "sha"])
+
+    :param dic: Dictionary with information
+    :param key: Key to look up in dictionary
+    :param keys: Additional keys to get to the interesting value
+    :return: Data from dic[key] or dic[key][keys]
     """
     if keys:
         return lookup(dic.get(key, {}), *keys)
@@ -109,7 +111,11 @@ def get_json(repo, github_key, directory, url_append=""):
     and the directory to store the json
     it performs a query to the repos GitHub v3 API
 
-    url_append offers the possibility to append something to the call
+    :param repo: GitHub repo in Tuple format (username, repository_name)
+    :param github_key: GitHub API token
+    :param directory: Location where the JSON file will be stored
+    :param url_append: Extra parameters to the API query
+    :return: True if the JSON could be obtained correctly, False otherwise
     """
     url = repo.url + url_append
     if "?" in url_append:
@@ -121,14 +127,15 @@ def get_json(repo, github_key, directory, url_append=""):
     except UnicodeEncodeError as e:
         logger.debug("%s, %s", str(e), str(repo))
         logger.debug("directory: %s", directory)
-        return 0
+        return False
+
+    json_name = "%s/%s:%s.json" % (directory, str(repo.owner_id), str(repo.id))
     try:
-        json_name = "%s/%s:%s.json" % (directory, str(repo.owner_id), str(repo.id))
         urllib.request.urlretrieve(url, json_name)
     except IOError as e:
         logger.debug("%s, url: %s", str(e), url)
-        return 0
-    return 1
+        return False
+    return True
 
 
 def read_json(repo, directory, lookup_list):
@@ -137,6 +144,11 @@ def read_json(repo, directory, lookup_list):
     the directory where the json has been stored
     it looks up for a given value in the JSON (given as a list)
     and returns its value
+
+    :param repo: GitHub repo in Tuple format (username, repository_name)
+    :param directory: Location where the JSON file will be read from
+    :param lookup_list: List of keys to look in the JSON
+    :return: Obtained data from JSON[lookup_list], False otherwise
     """
     json_name = "%s/%s:%s.json" % (directory, str(repo.owner_id), str(repo.id))
     with open(json_name) as data_file:
@@ -148,7 +160,7 @@ def read_json(repo, directory, lookup_list):
     try:
         return lookup(data, *lookup_list)
     except KeyError:
-        return 0
+        return False
 
 
 logger = logging.getLogger(__name__)
@@ -208,13 +220,12 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    # TODO: Add documentation
-    # TODO: Add new methods to reduce main
     # TODO: Check if response is truncated
     try:
         args = parse_args()
         keep_fds = configure_logging(args.log_file, args.debug_mode_on)
         main(args)
+        logger.info("End of execution")
     except Exception as e:
         logger.exception("Exception message:")
         s = "Error: %s github-api is exiting now." % str(e)
