@@ -177,7 +177,7 @@ def configure_logging(log_file, debug_mode_on=False):
 
     # create console handler with a higher log level
     ch = logging.StreamHandler()
-    ch.setLevel(logging.ERROR)
+    ch.setLevel(logging_mode)
 
     # create formatter and add it to the handlers
     formatter = logging.Formatter("[%(asctime)s - %(levelname)s] %(message)s")
@@ -201,7 +201,7 @@ def parse_args():
     parser.add_argument('--projects-file', dest='projects_file', required=True,
                         help='Projects file')
     parser.add_argument('--log-file', dest='log_file', default='github-api.log',
-                        required=False, help='Log file')
+                        required=False, help='Path to log file')
     parser.add_argument('-g', '--debug', dest='debug_mode_on', action='store_true',
                         default=False, help='Enables debug mode')
     return parser.parse_args()
