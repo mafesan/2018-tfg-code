@@ -27,26 +27,21 @@ import json
 import logging
 import os
 import sys
+import yaml
 
 DESC_MSG = 'Look for patterns and heuristics into Git-trees and return a list of positive results'
-
-# Common extensions for interesting files
-positive_exts = ["uml", "xmi", "uxf", "xdr", "eap","aird", "argo", "asta", "dfClass",\
-                  "dfUseCase", "ecore", "ecorediag", "umlcd", "mdj", "plantuml", "simp", \
-                  "txvcls", "umlx", "ump", "uxf", "zargo", "zuml", "zvpl",  "dia", "modelproj",\
-                  "diagram", "classdiagram", "sequencediagram", "activitydiagram", "usecasediagram",\
-                  "componentdiagram", "layerdiagram", "cd", "di", "umldi", "mps", "mpl", "msd", "rs"]
-
-# 1. Common filenames for UML files AND (see 2.)
-keyword_list = ["xmi", "uml", "diagram", "architecture", "design", "model", "sad", "sdd", "arch", "hier", "package.json"]
-
-# 2. with following extensions
-other_extensions = ["", "xml", "bmp", "jpg", "jpeg", "gif", "png", "svg", "txt", "doc", "docx", "ppt", "pptx", "pdf"]
 
 
 def main(args):
 
     logger.info('GitHub-Tree starts...')
+
+    with open(os.path.abspath(args.heuristics_file), 'r') as hfile:
+        try:
+            heuristics = yaml.load(hfile)
+        except yaml.YAMLError as e:
+            logger.error(e)
+            raise SystemExit
 
     logger.info("Looking for JSON files into: %s" % args.trees_path)
     repo_jsons = os.listdir(args.trees_path)
@@ -69,19 +64,19 @@ def main(args):
             if file_dict["type"] != "tree":
                 try:
                     if ("path" in file_dict) and ("url" in file_dict):
-                        if interesting(file_dict["path"]):
+                        if interesting(file_dict["path"], heuristics):
                             print("%s, %s\r\n" %(file_dict["path"], file_dict["url"]))
                         else:
                             pass
                 except UnicodeEncodeError:
                     logger.error("UnicodeEncodeError in file: %s" % jsonfile)
 
-def interesting(path):
+def interesting(path, heuristics):
     ext = extension(path)
-    if ext in positive_exts:
+    if ext in heuristics['level-one_exts']:
         return 1
-    if ext in other_extensions:
-        for keyword in keyword_list:
+    if ext in heuristics['level-two_exts']:
+        for keyword in heuristics['keywords']:
             if keyword in filename(path):
                 return 1
         return 0
@@ -166,10 +161,8 @@ def parse_args():
 
     parser = argparse.ArgumentParser(description=DESC_MSG)
 
-    """
     parser.add_argument('--heuristics-file', dest='heuristics_file', required=True,
                         help='File with patterns and other heuristics')
-    """
     parser.add_argument('--trees-path', dest='trees_path', required=True,
                         help='Path to folder containing trees information')
     parser.add_argument('--log-file', dest='log_file', default='github-tree.log',
