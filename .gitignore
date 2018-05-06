@@ -105,3 +105,6 @@ myvenv/
 /master
 /default
 /trees
+
+# Pycharm
+.idea/
