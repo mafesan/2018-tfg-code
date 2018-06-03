@@ -85,7 +85,14 @@ def filter_projects_file(args, formatted_file):
         with open(os.path.abspath(formatted_file), 'r') as csvfile:
             logger.info("Filtering projects: Not forked and Not deleted...")
             for contents in csv.reader(csvfile, quoting=csv.QUOTE_NONNUMERIC, escapechar="\\"):
+                try:
+                    contents[0] = str(int(contents[0]))
+                    contents[2] = str(int(contents[2]))
+                except ValueError:
+                    contents[0] = str(int(float(contents[0])))
+                    contents[2] = str(int(float(contents[2])))
                 row = ProjectRecord(*contents)
+
                 if not row.forked_from and not row.deleted:
                     count += 1
                     csvout.writerow(contents)
