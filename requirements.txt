@@ -1,0 +1,3 @@
+PyGithub==1.39
+Pyyaml==3.12
+perceval==0.10.3
