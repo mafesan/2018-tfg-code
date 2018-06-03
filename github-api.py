@@ -54,8 +54,6 @@ def main(args):
     with open(args.projects_file, "r") as csvfile:
         for contents in csv.reader(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL):
             # For each line in csv file...
-            contents[0] = str(int(contents[0]))
-            contents[2] = str(int(contents[2]))
             repo = ProjectRecord(*contents)
 
             if repo.owner_id + ":" + repo.id + ".json" in alreadyList:
@@ -113,9 +111,9 @@ def get_json(repo, github_key, directory, url_append=""):
     """
     url = repo.url + url_append
     if "?" in url_append:
-        url = url + "&" + github_key
+        url = url + "&access_token=" + github_key
     else:
-        url = url + "?" + github_key
+        url = url + "?access_token=" + github_key
     try:
         logger.info("Retrieve: %s", repo.url)
     except UnicodeEncodeError as e:
