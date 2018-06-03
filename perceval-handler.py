@@ -37,7 +37,7 @@ DESC_MSG = 'Calls GrimoireLab-Perceval to extract git information from the outpu
 
 def remove_dir(directory):
     if os.path.exists(directory):
-        logger.debug("Removing directory: ", directory)
+        logger.debug("Removing directory: %s" % directory)
         shutil.rmtree(directory, ignore_errors=True)
 
 
