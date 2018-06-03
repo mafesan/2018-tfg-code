@@ -45,31 +45,32 @@ def main(args):
 
     logger.info("Looking for JSON files into: %s" % args.trees_path)
     repo_jsons = os.listdir(args.trees_path)
-    for jsonfile_path in repo_jsons:
-        jsonfile = "%s/%s" % (os.path.abspath(args.trees_path), jsonfile_path)
-        (owner_id, repo_id) = jsonfile_path.split(":")
-        repo_id = repo_id[:-5]
+    with open(args.out_file, 'w') as ofile:
+        for jsonfile_path in repo_jsons:
+            jsonfile = "%s/%s" % (os.path.abspath(args.trees_path), jsonfile_path)
+            (owner_id, repo_id) = jsonfile_path.split(":")
+            repo_id = repo_id[:-5]
 
-        logger.debug("Opening %s" % jsonfile)
-        with open(jsonfile, 'r') as data_file:
-            data = json.load(data_file)
+            logger.debug("Opening %s" % jsonfile)
+            with open(jsonfile, 'r') as data_file:
+                data = json.load(data_file)
 
-        try:
-            tree = data["tree"]
-        except KeyError:
-            logger.error("KeyError in file: %s" % jsonfile)
-            continue
+            try:
+                tree = data["tree"]
+            except KeyError:
+                logger.warning("KeyError in file: %s" % jsonfile)
+                continue
 
-        for file_dict in tree:
-            if file_dict["type"] != "tree":
-                try:
-                    if ("path" in file_dict) and ("url" in file_dict):
-                        if interesting(file_dict["path"], heuristics):
-                            print("%s, %s\r\n" %(file_dict["path"], file_dict["url"]))
-                        else:
-                            pass
-                except UnicodeEncodeError:
-                    logger.error("UnicodeEncodeError in file: %s" % jsonfile)
+            for file_dict in tree:
+                if file_dict["type"] != "tree":
+                    try:
+                        if ("path" in file_dict) and ("url" in file_dict):
+                            if interesting(file_dict["path"], heuristics):
+                                ofile.write("%s, %s\r\n" %(file_dict["path"], file_dict["url"]))
+                            else:
+                                pass
+                    except UnicodeEncodeError:
+                        logger.error("UnicodeEncodeError in file: %s" % jsonfile)
 
 def interesting(path, heuristics):
     ext = extension(path)
@@ -140,9 +141,9 @@ def configure_logging(log_file, debug_mode_on=False):
     fh = logging.FileHandler(log_file, 'a')
     fh.setLevel(logging_mode)
 
-    # create console handler with a higher log level
+    # create console handler
     ch = logging.StreamHandler()
-    ch.setLevel(logging.ERROR)
+    ch.setLevel(logging_mode)
 
     # create formatter and add it to the handlers
     formatter = logging.Formatter("[%(asctime)s - %(levelname)s] %(message)s")
@@ -167,14 +168,14 @@ def parse_args():
                         help='Path to folder containing trees information')
     parser.add_argument('--log-file', dest='log_file', default='github-tree.log',
                         required=False, help='Log file')
+    parser.add_argument('--output-file', dest='out_file', default='hits.txt',
+                        required=False, help='Log file')
     parser.add_argument('-g', '--debug', dest='debug_mode_on', action='store_true',
                         default=False, help='Enables debug mode')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-    # TODO: Add documentation
-    # TODO: Support heuristics file
     try:
         args = parse_args()
         keep_fds = configure_logging(args.log_file, args.debug_mode_on)
