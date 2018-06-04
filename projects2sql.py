@@ -311,7 +311,7 @@ def parse_args():
     parser.add_argument('--urls-file', dest='input_file', required=True,
                         help='Path to input URLs file produced with hits2urls script')
     parser.add_argument('--output-path', dest='output_path', required=False,
-                        default=os.curdir, help='Path where Perceval JSONs are stored into')
+                        default=os.curdir, help='Path where SQL files are stored into')
     parser.add_argument('--log-file', dest='log_file', default='projects2sql.log',
                         required=False, help='Path to log file')
     parser.add_argument('--avoid-fw', dest='avoid_fw', action='store_true',

@@ -169,7 +169,7 @@ def parse_args():
     parser.add_argument('--log-file', dest='log_file', default='github-tree.log',
                         required=False, help='Log file')
     parser.add_argument('--output-file', dest='out_file', default='hits.txt',
-                        required=False, help='Log file')
+                        required=False, help='Path to output hits file')
     parser.add_argument('-g', '--debug', dest='debug_mode_on', action='store_true',
                         default=False, help='Enables debug mode')
     return parser.parse_args()

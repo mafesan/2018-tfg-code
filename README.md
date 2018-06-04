@@ -55,10 +55,12 @@ results
 optional arguments:
   -h, --help            show this help message and exit
   --heuristics-file HEURISTICS_FILE
-                        File with patterns and other heuristics
+                          File with patterns and other heuristics
   --trees-path TREES_PATH
-                        Path to folder containing trees information
+                          Path to folder containing trees information
   --log-file LOG_FILE   Log file
+  --output-file OUT_FILE
+                          Path to output hits file
   -g, --debug           Enables debug mode
 ```
 
@@ -130,7 +132,7 @@ optional arguments:
   --urls-file INPUT_FILE
                         Path to input URLs file produced with hits2urls script
   --output-path OUTPUT_PATH
-                        Path where Perceval JSONs are stored into
+                        Path where SQL files are stored into
   --log-file LOG_FILE   Path to log file
   --avoid-fw            Avoid `Framework`-type projects
   -g, --debug           Enables debug mode
@@ -162,7 +164,7 @@ SQL script to create the structure of the MySQL database where the SQL data have
 
 ---
 
-# Dependencies (WIP)
+# Dependencies
 
 Note: `pip3` package is needed
 ```
