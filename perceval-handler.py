@@ -58,16 +58,34 @@ def main(args):
             repo_set.add(repo)
 
     for repo in sorted(repo_set):
-        api_url = "https://api.github.com/repos/" + str(repo) + "?" + github_key
-        logger.info("Checking metadata for repo %s" % repo)
-        response = urllib.request.FancyURLopener({})
-        with response.open(api_url) as url_opener:
-            json_data = url_opener.read().decode('utf-8')
-            dicc_out = json.loads(json_data)
 
         repo_split = repo.split('/')
         outfile_name = "%s_%s.json" % (repo_split[0], repo_split[1])
         outfile_path = "%s/%s" % (args.output_path, outfile_name)
+
+        if outfile_name in list_jsons:
+            logger.info("Already downloaded: %s " % outfile_name)
+            continue
+        if "framework" in outfile_name:
+            logger.info("Skipping <framework> repository")
+            continue
+
+        api_url = "https://api.github.com/repos/" + str(repo) + "?access_token=" + github_key
+        logger.info("Checking metadata for repo %s" % repo)
+        try:
+            response = urllib.request.urlopen(api_url)
+        except urllib.error.HTTPError:
+            logger.error("HTTP 404: Not found: %s" % repo)
+            continue
+
+        try:
+            json_data = response.read().decode('utf-8')
+            dicc_out = json.loads(json_data)
+        except ValueError:
+            logger.warning("Error in response (ValueError)")
+            continue
+
+
         if 'message' in dicc_out:
             result = dicc_out['message']
         elif dicc_out == {}:
@@ -82,20 +100,22 @@ def main(args):
         else:
             repo_url = "https://github.com/%s" % repo
 
-            if outfile_name in list_jsons:
-                logger.info("Already downloaded: %s " % outfile_name)
-            else:
-                logger.info('Executing Perceval with repo: %s' % repo)
-                logger.debug('Repo stats. Size: %s KB' % dicc_out["size"])
-                gitpath = '%s/%s' % (os.path.abspath(args.perceval_path), repo)
-                git = Git(uri=repo_url, gitpath=gitpath)
+            logger.info('Executing Perceval with repo: %s' % repo)
+            logger.debug('Repo stats. Size: %s KB' % dicc_out["size"])
+            gitpath = '%s/%s' % (os.path.abspath(args.perceval_path), repo)
+            git = Git(uri=repo_url, gitpath=gitpath)
+            try:
                 commits = [commit for commit in git.fetch()]
-                logger.info('Exporting results to JSON...')
-                with open(outfile_path, "w", encoding='utf-8') as jfile:
-                    json.dump(commits, jfile, indent=4, sort_keys=True)
-                logger.info('Exported to %s' % outfile_path)
-                if not args.cache_mode_on:
-                    remove_dir(gitpath)
+            except Exception as e:
+                logger.warning("Failure while fetching commits. Repo: %s" % repo)
+                logger.error(e)
+                continue
+            logger.info('Exporting results to JSON...')
+            with open(outfile_path, "w", encoding='utf-8') as jfile:
+                json.dump(commits, jfile, indent=4, sort_keys=True)
+            logger.info('Exported to %s' % outfile_path)
+            if not args.cache_mode_on:
+                remove_dir(gitpath)
 
 
 logger = logging.getLogger(__name__)
