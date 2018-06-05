@@ -116,8 +116,9 @@ def main(args):
             logger.info("Missing project %s. Issue: %s" % (project, issue))
             writer_miss.writerow((project, issue, len(dicc_positives[project])))
         else:
+            logger.debug("Checking %s" % file_path)
             with open(file_path, 'r') as jfile:
-                jdata = json.load(jfile, encoding='utf-8', object_pairs_hook=OrderedDict)
+                jdata = json.load(jfile)
 
             p_id += 1
 
@@ -164,7 +165,15 @@ def main(args):
                         output_people.write(query)
                         first_people = False
                     else:
-                        output_people.write(',\n' + query)
+                        try:
+                            line = ',\n' + query
+                            line = line.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
+                            output_people.write(line)
+                        except UnicodeEncodeError as e:
+                            logger.debug(file_path)
+                            logger.error("%s. Query: %s. Continue..." % (e, query))
+                            continue
+
                 list_authors.append(my_authid)
 
                 # Timestamp (Commit datetime)
