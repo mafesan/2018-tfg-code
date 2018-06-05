@@ -39,7 +39,8 @@ def main(args):
 
     insert_query = 'INSERT INTO users (%s) VALUES\n' % fields
 
-    output = open('users.sql', 'w')
+    file_name = args.out_path + '/users.sql'
+    output = open(file_name, 'w')
     output.write('USE %s;\n' % db_name)
     output.write(insert_query)
 
