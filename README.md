@@ -64,6 +64,41 @@ optional arguments:
   -g, --debug           Enables debug mode
 ```
 
+#### Heuristics file
+
+Here is an example of the heuristics file for this script (YAML format):
+
+```
+---
+# 1. Positive extensions for interesting files
+level-one_exts:
+  - jpg
+  - jpeg
+  - png
+  - gif
+  - py
+  - js
+
+# 2. Extensions marked as positive only if file-name contains a keyword (See 3.)
+level-two_exts:
+  - svg
+  - txt
+  - pdf
+  - html
+  - json
+  - yml
+
+# 3. Keywords
+keywords:
+  - index
+  - views
+  - models
+  - urls
+  - img
+  - server
+  - client
+```
+
 ### hits2urls.py
 
 ```
